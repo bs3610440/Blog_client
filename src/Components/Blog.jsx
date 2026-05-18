@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-
 import {
   getBlogs,
   updateBlog,
@@ -11,19 +10,33 @@ export default function Blog() {
   const [blogs, setBlogs] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [editId, setEditId] = useState(null);
-  const [editForm, setEditForm] = useState(
-    { title: "", body: "", category: "", });
 
+  // PAGINATION
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const [editId, setEditId] = useState(null);
+
+  const [editForm, setEditForm] = useState({
+    title: "",
+    body: "",
+    category: "",
+  });
+
+  // FETCH BLOGS
   const fetchBlogs = async () => {
 
     try {
 
-      const res = await getBlogs();
+      setLoading(true);
+
+      const res = await getBlogs(page, search);
 
       console.log("BLOGS => ", res.data);
 
       setBlogs(res.data.data || []);
+
+      setTotalPages(res.data.totalPages || 1);
 
     } catch (err) {
 
@@ -37,13 +50,20 @@ export default function Blog() {
     }
   };
 
+  // DELETE
   const handleDelete = async (id) => {
 
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete?"
+    );
+
+    if (!confirmDelete) return;
+
     try {
+
       await deleteBlog(id);
-      setBlogs(
-        blogs.filter((b) => b._id !== id)
-      );
+
+      fetchBlogs();
 
       alert("Blog deleted successfully ✅");
 
@@ -55,7 +75,7 @@ export default function Blog() {
     }
   };
 
-  // UPDATE BLOG
+  // UPDATE
   const handleUpdate = async () => {
 
     try {
@@ -82,31 +102,25 @@ export default function Blog() {
     }
   };
 
-  // USE EFFECT
+  // FETCH ON PAGE CHANGE
   useEffect(() => {
-    fetchBlogs();
-  }, []);
 
-  // SEARCH FILTER
-  const filteredBlogs = blogs.filter((blog) =>
-    blog.title
-      ?.toLowerCase()
-      .includes(search.toLowerCase())
-  );
+    fetchBlogs();
+
+  }, [page, search]);
 
   return (
-    <div className="min-h-screen bg-gray-100 px-6 py-8">
+    <div className="min-h-screen bg-[#020617] px-6 py-8">
 
       {/* EDIT FORM */}
       {editId && (
 
-        <div className="max-w-3xl mx-auto bg-white p-6 rounded-2xl shadow-lg mb-8">
+        <div className="max-w-3xl mx-auto bg-[#111827] p-6 rounded-2xl shadow-lg mb-8">
 
-          <h2 className="text-3xl font-bold mb-6 text-gray-800">
+          <h2 className="text-3xl font-bold mb-6 text-white">
             ✏️ Edit Blog
           </h2>
 
-          {/* TITLE */}
           <input
             type="text"
             placeholder="Title"
@@ -117,10 +131,9 @@ export default function Blog() {
                 title: e.target.value,
               })
             }
-            className="w-full border border-gray-300 p-3 rounded-xl mb-4 outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border p-3 text-white rounded-xl mb-4 bg-transparent"
           />
 
-          {/* BODY */}
           <textarea
             placeholder="Body"
             value={editForm.body}
@@ -130,11 +143,10 @@ export default function Blog() {
                 body: e.target.value,
               })
             }
-            className="w-full border border-gray-300 p-3 rounded-xl mb-4 outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border p-3 text-white rounded-xl mb-4 bg-transparent"
             rows={5}
           />
 
-          {/* CATEGORY */}
           <input
             type="text"
             placeholder="Category"
@@ -145,10 +157,9 @@ export default function Blog() {
                 category: e.target.value,
               })
             }
-            className="w-full border border-gray-300 p-3 rounded-xl mb-4 outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border text-white p-3 rounded-xl mb-4 bg-transparent"
           />
 
-          {/* BUTTONS */}
           <div className="flex gap-4">
 
             <button
@@ -171,7 +182,7 @@ export default function Blog() {
       {/* HEADER */}
       <div className="max-w-6xl mx-auto mb-8 flex flex-col md:flex-row gap-4 justify-between items-center">
 
-        <h1 className="text-4xl font-bold text-gray-800">
+        <h1 className="text-4xl font-bold text-white">
           📚 Blog Feed
         </h1>
 
@@ -179,63 +190,48 @@ export default function Blog() {
           type="text"
           placeholder="Search blogs..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="border border-gray-300 px-4 py-3 rounded-xl w-full md:w-72 outline-none focus:ring-2 focus:ring-blue-500"
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          className="border px-4 py-3 text-white rounded-xl w-full md:w-72 bg-transparent"
         />
       </div>
 
       {/* LOADING */}
       {loading && (
-        <p className="text-center text-lg font-medium">
+        <p className="text-center text-white text-lg">
           Loading blogs...
         </p>
       )}
 
       {/* EMPTY */}
-      {!loading && filteredBlogs.length === 0 && (
-        <p className="text-center text-gray-500 text-lg">
+      {!loading && blogs.length === 0 && (
+        <p className="text-center text-gray-400 text-lg">
           No blogs found 😔
         </p>
       )}
 
       {/* BLOGS */}
-      <div className="max-w-6xl mx-auto grid sm:grid-cols-2 md:grid-cols-3 gap-6">
+      <div className="max-w-6xl mx-auto grid sm:grid-cols-2 gap-6">
 
-        {filteredBlogs.map((blog) => (
+        {blogs.map((blog) => (
 
           <div
             key={blog._id}
-            className="bg-white rounded-2xl shadow-md hover:shadow-2xl transition duration-300 p-5 flex flex-col justify-between"
+            className="bg-gray-800 rounded-2xl shadow-md p-5 flex flex-col justify-between"
           >
 
-            {/* TOP */}
             <div>
 
-              {/* TITLE */}
-              <h2 className="text-2xl font-bold text-gray-800 mb-3">
+              <h2 className="text-2xl font-bold text-white mb-3">
                 {blog.title}
               </h2>
 
-              {/* BODY */}
-              <p className="text-gray-600 text-sm leading-6 line-clamp-4">
+              <p className="text-white text-sm leading-6 line-clamp-4">
                 {blog.body}
               </p>
 
-              {/* TAGS */}
-              <div className="flex flex-wrap gap-2 mt-4">
-
-                {Array.isArray(blog.tags) &&
-                  blog.tags.map((tag, i) => (
-                    <span
-                      key={i}
-                      className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full"
-                    >
-                      #{tag}
-                    </span>
-                  ))}
-              </div>
-
-              {/* CATEGORY */}
               <div className="mt-4">
 
                 <span className="bg-blue-100 text-blue-700 text-sm px-3 py-1 rounded-full">
@@ -244,7 +240,6 @@ export default function Blog() {
               </div>
             </div>
 
-            {/* FOOTER */}
             <div className="mt-6 flex gap-3 items-center justify-between">
 
               <span className="text-xs text-gray-400">
@@ -253,7 +248,6 @@ export default function Blog() {
 
               <div className="flex gap-2">
 
-                {/* EDIT BUTTON */}
                 <button
                   onClick={() => {
 
@@ -270,10 +264,9 @@ export default function Blog() {
                   Edit
                 </button>
 
-                {/* DELETE BUTTON */}
                 <button
                   onClick={() => handleDelete(blog._id)}
-                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition"
+                  className="bg-red-500 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
                 >
                   Delete
                 </button>
@@ -281,6 +274,30 @@ export default function Blog() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* PAGINATION */}
+      <div className="flex justify-center items-center gap-4 mt-10">
+
+        <button
+          disabled={page === 1}
+          onClick={() => setPage(page - 1)}
+          className="bg-gray-700 text-white px-5 py-2 rounded disabled:opacity-50"
+        >
+          Prev
+        </button>
+
+        <span className="text-white">
+          Page {page} of {totalPages}
+        </span>
+
+        <button
+          disabled={page === totalPages}
+          onClick={() => setPage(page + 1)}
+          className="bg-blue-600 text-white px-5 py-2 rounded disabled:opacity-50"
+        >
+          Next
+        </button>
       </div>
     </div>
   );
